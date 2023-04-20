@@ -49,7 +49,6 @@ app.get("/api/drive/:name", async (req, res) => {
     const openFolder = await fs.promises.readdir(path.join(home, fileName), {
       encoding: "utf8",
     });
-
     const file = await Promise.all(
       openFolder.map((files) => {
         const stats = fs.statSync(path.join(home, fileName, files));
@@ -66,4 +65,19 @@ app.get("/api/drive/:name", async (req, res) => {
     encoding: "utf8",
   });
   res.send(openFile);
+});
+
+app.post("/api/drive", (req, res) => {
+  const folderName = req.query.name;
+  const folderPath = path.join(home, folderName);
+
+  fs.mkdir(folderPath, { recursive: true }, (err) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send("Erreur lors de la création du dossier");
+    } else {
+      console.log(`Le dossier ${folderName} a été créé avec succès`);
+      res.status(200).send("Le dossier a été créé avec succès");
+    }
+  });
 });
