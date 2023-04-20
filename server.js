@@ -42,9 +42,28 @@ app.get("/api/drive", async (req, res) => {
 app.get("/api/drive/:name", async (req, res) => {
   const fileName = req.params.name;
 
+  if (!fs.existsSync(path.join(home, fileName)))
+    return res.status(404).send("Page not found");
+
+  if (fs.lstatSync(path.join(home, fileName)).isDirectory()) {
+    const openFolder = await fs.promises.readdir(path.join(home, fileName), {
+      encoding: "utf8",
+    });
+
+    const file = await Promise.all(
+      openFolder.map((files) => {
+        const stats = fs.statSync(path.join(home, fileName, files));
+        return {
+          name: files,
+          size: stats.size,
+        };
+      })
+    );
+    console.log(file);
+    return res.send(file);
+  }
   const openFile = await fs.promises.readFile(path.join(home, fileName), {
     encoding: "utf8",
   });
-  console.log("open file ", openFile);
   res.send(openFile);
 });
