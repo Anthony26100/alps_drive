@@ -39,6 +39,34 @@ app.get("/api/drive", async (req, res) => {
   res.send(test);
 });
 
+// app.get("/api/drive/:name", async (req, res) => {
+//   const fileName = req.params.name;
+
+//   if (!fs.existsSync(path.join(home, fileName)))
+//     return res.status(404).send("Page not found");
+
+//   if (fs.lstatSync(path.join(home, fileName)).isDirectory()) {
+//     const openFolder = await fs.promises.readdir(path.join(home, fileName), {
+//       encoding: "utf8",
+//     });
+//     const file = await Promise.all(
+//       openFolder.map((files) => {
+//         const stats = fs.statSync(path.join(home, fileName, files));
+//         return {
+//           name: files,
+//           size: stats.size,
+//         };
+//       })
+//     );
+//     console.log(file);
+//     return res.send(file);
+//   }
+//   const openFile = await fs.promises.readFile(path.join(home, fileName), {
+//     encoding: "utf8",
+//   });
+//   res.send(openFile);
+// });
+
 app.get("/api/drive/:name", async (req, res) => {
   const fileName = req.params.name;
 
@@ -47,37 +75,37 @@ app.get("/api/drive/:name", async (req, res) => {
 
   if (fs.lstatSync(path.join(home, fileName)).isDirectory()) {
     const openFolder = await fs.promises.readdir(path.join(home, fileName), {
-      encoding: "utf8",
+      withFileTypes: true,
     });
-    const file = await Promise.all(
+    const info = await Promise.all(
       openFolder.map((files) => {
-        const stats = fs.statSync(path.join(home, fileName, files));
         return {
-          name: files,
-          size: stats.size,
+          name: files.name,
+          isFolder: files.isDirectory(),
+          size: fs.statSync(path.join(home, fileName, files.name)).size,
         };
       })
     );
-    console.log(file);
-    return res.send(file);
+    // console.log(info);
+    res.send(info);
+  } else {
+    res.send(fs.readFileSync(path.join(home, fileName)));
   }
-  const openFile = await fs.promises.readFile(path.join(home, fileName), {
-    encoding: "utf8",
-  });
-  res.send(openFile);
 });
 
 app.post("/api/drive", (req, res) => {
+  // TODO regex for not alphanumeric
+  const regex = /[^a-zA-Z0-9]/g;
   const folderName = req.query.name;
   const folderPath = path.join(home, folderName);
 
   fs.mkdir(folderPath, { recursive: true }, (err) => {
     if (err) {
       console.error(err);
-      res.status(500).send("Erreur lors de la création du dossier");
+      res.status(400).send("Erreur lors de la création du dossier");
     } else {
       console.log(`Le dossier ${folderName} a été créé avec succès`);
-      res.status(200).send("Le dossier a été créé avec succès");
+      res.status(400).send("Le dossier a été créé avec succès");
     }
   });
 });
