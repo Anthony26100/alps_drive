@@ -27,7 +27,6 @@ app.get("/api/drive", async (req, res) => {
     } else {
       // statSync permet d'afficher la size ou autres dans fichier
       // console.log("---->  ", fs.statSync(path.join(home, paths.name)).size);
-
       return {
         name: paths.name,
         size: fs.statSync(path.join(home, paths.name)).size,
@@ -93,6 +92,7 @@ app.get("/api/drive/:name", async (req, res) => {
   }
 });
 
+// Create folder
 app.post("/api/drive", (req, res) => {
   // TODO regex for not alphanumeric
   const regex = /[^a-zA-Z0-9]/g;
@@ -105,7 +105,33 @@ app.post("/api/drive", (req, res) => {
       res.status(400).send("Erreur lors de la création du dossier");
     } else {
       console.log(`Le dossier ${folderName} a été créé avec succès`);
-      res.status(400).send("Le dossier a été créé avec succès");
+      res.status(201).send("Le dossier a été créé avec succès");
     }
   });
 });
+
+// Create folder into folder
+// check if folder exist if exist : "folder exist" : "folder not exist"
+app.post("/api/drive/:folder", (req, res) => {
+  // recup le nom du dossier
+  const folderParams = req.params.folder;
+  // nom de la creation du dossier
+  const folderName = req.query.name;
+
+  const folderPath = path.join(home, folderParams, folderName);
+
+  fs.mkdir(folderPath, { recursive: true }, (err) => {
+    if (err) {
+      console.error(err);
+      res.status(400).send("Erreur lors de la création du dossier");
+    } else {
+      console.log(`Le dossier ${folderPath} a été créé avec succès`);
+      res.status(201).send("Le dossier a été créé avec succès");
+    }
+  });
+
+  // if (fs.existsSync(folderParams)) {
+  // }
+});
+
+// app.delete();
