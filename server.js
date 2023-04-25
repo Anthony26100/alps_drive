@@ -4,7 +4,9 @@ const port = 3000;
 const os = require("node:os");
 const fs = require("node:fs");
 const path = require("path");
+const busboy = require("busboy");
 app.use(express.static("frontend"));
+
 // Directory /tmp
 const home = os.tmpdir();
 
@@ -38,34 +40,6 @@ app.get("/api/drive", async (req, res) => {
   res.send(test);
 });
 
-// app.get("/api/drive/:name", async (req, res) => {
-//   const fileName = req.params.name;
-
-//   if (!fs.existsSync(path.join(home, fileName)))
-//     return res.status(404).send("Page not found");
-
-//   if (fs.lstatSync(path.join(home, fileName)).isDirectory()) {
-//     const openFolder = await fs.promises.readdir(path.join(home, fileName), {
-//       encoding: "utf8",
-//     });
-//     const file = await Promise.all(
-//       openFolder.map((files) => {
-//         const stats = fs.statSync(path.join(home, fileName, files));
-//         return {
-//           name: files,
-//           size: stats.size,
-//         };
-//       })
-//     );
-//     console.log(file);
-//     return res.send(file);
-//   }
-//   const openFile = await fs.promises.readFile(path.join(home, fileName), {
-//     encoding: "utf8",
-//   });
-//   res.send(openFile);
-// });
-
 app.get("/api/drive/:name", async (req, res) => {
   const fileName = req.params.name;
 
@@ -95,7 +69,6 @@ app.get("/api/drive/:name", async (req, res) => {
 // Create folder
 app.post("/api/drive", (req, res) => {
   // TODO regex for not alphanumeric
-  const regex = /[^a-zA-Z0-9]/g;
   const folderName = req.query.name;
   const folderPath = path.join(home, folderName);
 
@@ -111,7 +84,6 @@ app.post("/api/drive", (req, res) => {
 });
 
 // Create folder into folder
-// check if folder exist if exist : "folder exist" : "folder not exist"
 app.post("/api/drive/:folder", (req, res) => {
   // recup le nom du dossier
   const folderParams = req.params.folder;
@@ -134,4 +106,64 @@ app.post("/api/drive/:folder", (req, res) => {
   // }
 });
 
-// app.delete();
+app.delete("/api/drive/:name", async (req, res) => {
+  const name = req.params.name;
+  const regex = /[^a-zA-Z0-9]/g;
+  if (name.match(regex)) {
+    const path = home + "/" + name;
+    if (fs.existsSync(path)) {
+      fs.rmdirSync(path);
+      res
+        .status(200)
+        .json({ message: "Le dossier a été supprimé avec succès" });
+    } else {
+      res.status(404).json({ error: "Le dossier demandé n'existe pas" });
+    }
+  } else {
+    res.status(400).json({
+      error: "Le nom du dossier contient des caractères non-alphanumériques",
+    });
+  }
+});
+
+app.delete("/api/drive/:folder/:name", async (req, res) => {
+  const folder = req.params.folder;
+  const name = req.params.name;
+  if (name.match(/^[a-z0-9]+$/i)) {
+    const path = home + "/" + folder + "/" + name;
+    console.log(path);
+    if (fs.existsSync(path)) {
+      fs.rmSync(path, { recursive: true });
+      res
+        .status(200)
+        .json({ message: "Le dossier a été supprimé avec succès" });
+    } else {
+      res.status(404).json({ error: "Le dossier demandé n'existe pas" });
+    }
+  } else {
+    res.status(400).json({
+      error: "Le nom du dossier contient des caractères non-alphanumériques",
+    });
+  }
+});
+
+// Update
+app.put("/api/drive", (req, res) => {
+  let busboyInstance = new busboy({ headers: req.headers });
+
+  busboyInstance.on("file", (file, filename) => {
+    let filepath = dir + "/" + filename;
+
+    file.on("end", () => {
+      res.status(200).json({ message: "Le fichier a été créé avec succès" });
+    });
+
+    file.pipe(fs.createWriteStream(filepath));
+  });
+
+  busboyInstance.on("finish", function () {
+    res.status(400).json({ error: "Aucun fichier n'a été envoyé" });
+  });
+
+  req.pipe(busboyInstance);
+});
