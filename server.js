@@ -149,6 +149,7 @@ expressBusboy.extend(app, {
 });
 
 app.put("/api/drive", (req, res) => {
+  res.header("Content-Type", "multipart/form-data");
   const fileName = req.files.file.filename;
   const fileSrc = req.files.file.file;
   console.log(fileName);
@@ -174,7 +175,7 @@ app.put("/api/drive/*", (req, res) => {
     if (fileName) {
       console.log("Je suis passé ici");
       fs.copyFileSync(fileSrc, home + "/" + folderParams + "/" + fileName);
-      res.status(201).send(fileName);
+      res.status(201).send(home + "/" + folderParams);
     } else {
       console.log("Pas de fichier");
       res.status(400).send(home + "/" + folderParams);
