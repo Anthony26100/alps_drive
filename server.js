@@ -45,6 +45,7 @@ app.get("/api/drive", async (req, res) => {
 
 app.get("/api/drive/*", async (req, res) => {
   const fileName = req.params[0];
+
   if (!fs.existsSync(path.join(home, fileName)))
     return res.status(404).send("Page not found");
 
@@ -142,25 +143,46 @@ app.delete("/api/drive/*", async (req, res) => {
 
 // Upload files
 
-expressBusboy.extend(app);
-
 expressBusboy.extend(app, {
   upload: true,
   path: home,
 });
 
 app.put("/api/drive", (req, res) => {
-  req.busboy.on(
-    "file",
-    function (fieldname, file, filename, encoding, mimetype) {
-      let saveTo = path.join("home", "uploads", filename); // Chemin relatif pour la sauvegarde du fichier
-      file.pipe(fs.createWriteStream(saveTo));
+  const fileName = req.files.file.filename;
+  const fileSrc = req.files.file.file;
+  console.log(fileName);
+
+  if (fileName) {
+    console.log("Je suis passé ici");
+    fs.copyFileSync(fileSrc, home + "/" + fileName);
+    res.status(201).send(fileName);
+  } else {
+    console.log("Pas de fichier");
+    res.status(400).send(home);
+  }
+});
+
+app.put("/api/drive/*", (req, res) => {
+  res.header("Content-Type", "multipart/form-data");
+
+  const folderParams = req.params[0];
+  const fileName = req.files.file.filename;
+  const fileSrc = req.files.file.file;
+  console.log(fileName);
+  if (fs.existsSync(home + "/" + folderParams)) {
+    if (fileName) {
+      console.log("Je suis passé ici");
+      fs.copyFileSync(fileSrc, home + "/" + folderParams + "/" + fileName);
+      res.status(201).send(fileName);
+    } else {
+      console.log("Pas de fichier");
+      res.status(400).send(home + "/" + folderParams);
     }
-  );
-  req.busboy.on("finish", function () {
-    res.send("File uploaded!");
-  });
-  req.pipe(req.busboy);
+  } else {
+    console.log("Le dossier n'existe pas");
+    res.status(404);
+  }
 });
 
 // 404
